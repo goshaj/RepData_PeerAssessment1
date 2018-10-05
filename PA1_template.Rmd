@@ -1,25 +1,78 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "PA1_template.Rmd"
+output: html_document
 ---
 
+Loading and preprocessing the data
+``` {r read}
+activity<-read.csv("/Users/gosia/Downloads/activity.csv")
+```
 
-## Loading and preprocessing the data
+What is mean total number of steps taken per day?
+```{r Q1}
+sum(is.na(activity$steps))
 
+#sum and create histogram
+total<-aggregate(steps~date,data=activity,sum,na.rm=TRUE)
+total
+hist(total$steps)
+#calculate and report mean
+mean(total$steps)
+#calcaulate and report median
+median(total$steps)
+```
 
+What is the average daily activity pattern?
+``` {r Q2}
+#time series plot
+stepsinterval<-aggregate(steps~interval,data=activity,mean,na.rm=TRUE)
+stepsinterval
+plot(steps~interval,data=stepsinterval,type="l")
 
-## What is mean total number of steps taken per day?
+#which interval contains max number of steps?
+max(stepsinterval$steps)
+stepsinterval[which.max(stepsinterval$steps),]$interval
+```
 
+Imputing missing values
+``` {r Q3}
+#NA
+interval2steps<-function(interval){
+  stepsinterval[stepsinterval$interval==interval,]$steps
+}
 
+interval2steps(2355)
 
-## What is the average daily activity pattern?
+#fill missing values
+activityFilled<-activity
+count=0
+for(i in 1:nrow(activityFilled)){
+  if(is.na(activityFilled[i,]$steps)){
+    activityFilled[i,]$steps<-interval2steps(activityFilled[i,]$interval)
+    count=count+1
+  }
+}
+cat("In total",count, "missing values were filled.\n\r")
+sum(is.na(activity$steps))
+sum(is.na(activityFilled$steps))
 
+#new dataset with NA filled in
+total2<-aggregate(steps~date,data=activityFilled,sum)
+total2
+hist(total2$steps)
+mean(total2$steps)
+median(total2$steps)
+```
 
+Are there differences in activity patterns between weekdays and weekends?
+```{r Q4}
+activityFilled$day=ifelse(as.POSIXlt(as.Date(activityFilled$date))$wday%%6==0,
+                          "weekend","weekday")
+activityFilled$day=factor(activityFilled$day,levels=c("weekday","weekend"))
 
-## Imputing missing values
+stepsinterval2=aggregate(steps~interval+day,activityFilled,mean)
 
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+#timeseries plot
+library(lattice)
+xyplot(steps~interval|factor(day),data=stepsinterval2,aspect=1/2,type="l")
+```
